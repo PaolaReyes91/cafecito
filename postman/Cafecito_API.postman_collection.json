@@ -1,0 +1,1242 @@
+{
+  "info": {
+    "name": "Cafecito API",
+    "description": "Colección completa de endpoints para la API de Cafecito Feliz.\n\n## Configuración inicial\n1. Importar esta colección y el environment en Postman\n2. Seleccionar el environment \"Cafecito Local\"\n3. Ejecutar \"Login Admin\" para obtener el token automáticamente\n4. Seguir el orden sugerido: Auth → Productos → Clientes → Ventas → Tickets\n\n## Endpoints públicos\n- GET /products y GET /products/:id no requieren autenticación\n- POST /auth/register y POST /auth/login tampoco\n\n## Seed data disponible\n- Admin: admin@cafecito.com / admin123\n- Vendedor: vendedor@cafecito.com / vendedor123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    },
+    {
+      "key": "saleId",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "🏠 Health Check",
+      "item": [
+        {
+          "name": "GET / — Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Verifica que el servidor esté corriendo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Responde con mensaje', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nuevo Usuario\",\n  \"email\": \"nuevo@cafecito.com\",\n  \"password\": \"password123\",\n  \"role\": \"seller\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra un nuevo usuario. Retorna token y datos del usuario."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Retorna token y user', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('token');",
+                  "    pm.expect(json.user).to.have.property('id');",
+                  "    pm.expect(json.user).to.have.property('name');",
+                  "    pm.expect(json.user).to.have.property('email');",
+                  "    pm.expect(json.user).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cafecito.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como admin. El token se guarda automáticamente en la variable {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('Retorna token', () => {",
+                  "    pm.expect(json).to.have.property('token');",
+                  "});",
+                  "",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token guardado:', json.token.slice(0, 20) + '...');",
+                  "}",
+                  "",
+                  "pm.test('user.role es admin', () => {",
+                  "    pm.expect(json.user.role).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Vendedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendedor@cafecito.com\",\n  \"password\": \"vendedor123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como vendedor. Útil para probar permisos por rol."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "}",
+                  "pm.test('user.role es seller', () => {",
+                  "    pm.expect(json.user.role).to.eql('seller');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Obtiene los datos del usuario autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna user', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.user).to.have.property('id');",
+                  "    pm.expect(json.user).to.have.property('name');",
+                  "    pm.expect(json.user).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "☕ Productos",
+      "item": [
+        {
+          "name": "GET /products — Listar (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" }
+              ]
+            },
+            "description": "Lista productos con paginación. No requiere token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta paginada', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.all.keys('data','total','page','limit');",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    pm.expect(json.page).to.eql(1);",
+                  "    pm.expect(json.limit).to.eql(5);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    const p = json.data[0];",
+                  "    pm.expect(p).to.have.all.keys('id','name','price','stock','created_at','updated_at');",
+                  "    pm.collectionVariables.set('productId', p.id);",
+                  "    console.log('ID producto guardado:', p.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /products?q= — Buscar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?q=latte",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "q", "value": "latte" }
+              ]
+            },
+            "description": "Busca productos por nombre (insensible a mayúsculas)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Resultados filtrados', () => {",
+                  "    const json = pm.response.json();",
+                  "    json.data.forEach(p => {",
+                  "        pm.expect(p.name.toLowerCase()).to.include('latte');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /products/:id — Por ID (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Obtiene un producto por su ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna producto', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.all.keys('id','name','price','stock','created_at','updated_at');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /products — Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mocha\",\n  \"price\": 60,\n  \"stock\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Crea un nuevo producto. Requiere rol admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Producto creado correctamente', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json.name).to.eql('mocha');",
+                  "    pm.expect(json.price).to.eql(60);",
+                  "    pm.expect(json.stock).to.eql(30);",
+                  "    pm.expect(json).to.have.property('created_at');",
+                  "    pm.expect(json).to.have.property('updated_at');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('productId', pm.response.json().id);",
+                  "console.log('Nuevo ID producto:', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /products/:id — Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mocha actualizado\",\n  \"price\": 65,\n  \"stock\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Actualiza un producto existente. Requiere rol admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Producto actualizado', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.name).to.eql('mocha actualizado');",
+                  "    pm.expect(json.price).to.eql(65);",
+                  "    pm.expect(json.stock).to.eql(25);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /products/:id — Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Elimina un producto. Requiere rol admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Mensaje de confirmación', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('deleted');",
+                  "    pm.expect(json).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — POST sin token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"test\",\n  \"price\": 10,\n  \"stock\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Verifica que crear producto sin token devuelva 401."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Error de autenticación', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — POST datos inválidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"price\": -5,\n  \"stock\": -1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Verifica que datos inválidos devuelvan 422 con detalles."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Detalles de validación', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('details');",
+                  "    pm.expect(json.details).to.be.an('array');",
+                  "    pm.expect(json.details.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — PUT producto inexistente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"nuevo nombre\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/000000000000000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "000000000000000000000000"]
+            },
+            "description": "Verifica que actualizar un producto inexistente devuelva 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error Product not found', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.include('not found');",
+                  "    pm.expect(json).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👥 Clientes",
+      "item": [
+        {
+          "name": "POST /customers — Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cliente Test\",\n  \"phone_or_email\": \"cliente@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            },
+            "description": "Crea un nuevo cliente. Requiere autenticación."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Cliente creado', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json.name).to.eql('Cliente Test');",
+                  "    pm.expect(json.phone_or_email).to.eql('cliente@test.com');",
+                  "    pm.expect(json.purchases_count).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('customerId', pm.response.json().id);",
+                  "console.log('Nuevo ID cliente:', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /customers — Listar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Lista clientes con paginación."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta paginada', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.all.keys('data','total','page','limit');",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    const c = json.data[0];",
+                  "    pm.expect(c).to.have.all.keys('id','name','phone_or_email','purchases_count','created_at','updated_at');",
+                  "    pm.collectionVariables.set('customerId', c.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /customers?q= — Buscar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers?q=Paola",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                { "key": "q", "value": "Paola" }
+              ]
+            },
+            "description": "Busca clientes por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Filtrado por nombre', () => {",
+                  "    const json = pm.response.json();",
+                  "    json.data.forEach(c => {",
+                  "        pm.expect(c.name).to.include('Paola');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /customers/:id — Por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{customerId}}"]
+            },
+            "description": "Obtiene un cliente por su ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna cliente', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('phone_or_email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — POST cliente duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cliente Test\",\n  \"phone_or_email\": \"cliente@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            },
+            "description": "Verifica que crear cliente con phone_or_email existente devuelva 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error de duplicado', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error.toLowerCase()).to.include('already exists');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — GET /customers/:id inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/customers/000000000000000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "000000000000000000000000"]
+            },
+            "description": "Verifica 404 para cliente inexistente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error Customer not found', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💵 Ventas",
+      "item": [
+        {
+          "name": "POST /sales — Crear venta (con cliente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customerId}}\",\n  \"payment_method\": \"cash\",\n  \"items\": [\n    {\n      \"product_id\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"]
+            },
+            "description": "Registra una venta aplicando descuento por fidelidad del cliente.\n\n- El descuento se calcula según purchasesCount del cliente (0→0%, 1-3→5%, 4-7→10%, 8+→15%)\n- Se reduce el stock de los productos\n- Se incrementa purchasesCount del cliente\n- Se genera el ticket automáticamente"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('Venta creada con todos los campos', () => {",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('customer_id');",
+                  "    pm.expect(json).to.have.property('payment_method');",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json).to.have.property('subtotal');",
+                  "    pm.expect(json).to.have.property('discount');",
+                  "    pm.expect(json).to.have.property('total');",
+                  "    pm.expect(json).to.have.property('ticket');",
+                  "    pm.expect(json).to.have.property('created_at');",
+                  "});",
+                  "",
+                  "pm.test('Items formateados', () => {",
+                  "    pm.expect(json.items).to.be.an('array').with.lengthOf(1);",
+                  "    const item = json.items[0];",
+                  "    pm.expect(item).to.have.all.keys('product_id','product_name','quantity','unit_price','line_total');",
+                  "});",
+                  "",
+                  "pm.test('Ticket generado', () => {",
+                  "    const t = json.ticket;",
+                  "    pm.expect(t).to.have.property('sale_id');",
+                  "    pm.expect(t).to.have.property('store_name');",
+                  "    pm.expect(t).to.have.property('items');",
+                  "    pm.expect(t).to.have.property('discount');",
+                  "    pm.expect(t.store_name).to.eql('Cafecito Feliz');",
+                  "});",
+                  "",
+                  "pm.test('Subtotal coincide', () => {",
+                  "    pm.expect(json.subtotal).to.eql(json.items[0].line_total);",
+                  "});",
+                  "",
+                  "console.log('Venta ID:', json.id);",
+                  "console.log('Total:', json.total);",
+                  "console.log('Descuento:', json.discount.percentage * 100 + '%');",
+                  "pm.collectionVariables.set('saleId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /sales — Sin cliente (sin descuento)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"card\",\n  \"items\": [\n    {\n      \"product_id\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"]
+            },
+            "description": "Venta sin cliente asociado — no aplica descuento por fidelidad."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Sin descuento', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.discount.percentage).to.eql(0);",
+                  "    pm.expect(json.discount.amount).to.eql(0);",
+                  "    pm.expect(json.subtotal).to.eql(json.total);",
+                  "});",
+                  "",
+                  "pm.test('Ticket con método card', () => {",
+                  "    pm.expect(pm.response.json().ticket.payment_method).to.eql('card');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /sales — Listar ventas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Lista ventas con paginación."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Respuesta paginada', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.all.keys('data','total','page','limit');",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0) {",
+                  "    const s = json.data[0];",
+                  "    pm.expect(s).to.have.keys(",
+                  "        'id','customer_name','customer_id','payment_method',",
+                  "        'items','subtotal','discount','total','ticket','created_at'",
+                  "    );",
+                  "    pm.collectionVariables.set('saleId', s.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /sales/:id — Detalle venta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{saleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales", "{{saleId}}"]
+            },
+            "description": "Obtiene el detalle completo de una venta, incluyendo items y ticket."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Detalle completo', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json).to.have.property('ticket');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json.items.length).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "console.log('Cliente:', json.customer_name);",
+                  "console.log('Items:', json.items.length);",
+                  "console.log('Total:', json.total);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — POST /sales items vacíos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customerId}}\",\n  \"payment_method\": \"cash\",\n  \"items\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"]
+            },
+            "description": "Verifica que items vacíos devuelvan 422."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Error de validación', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('Validation failed');",
+                  "    pm.expect(json.details[0].field).to.eql('items');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Errores — POST /sales stock insuficiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product_id\": \"{{productId}}\",\n      \"quantity\": 999999\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"]
+            },
+            "description": "Verifica que stock insuficiente devuelva 400 con detalles."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error de stock', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('Insufficient stock');",
+                  "    pm.expect(json.details[0]).to.have.property('available');",
+                  "    pm.expect(json.details[0]).to.have.property('requested');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎫 Tickets",
+      "item": [
+        {
+          "name": "GET /tickets/sale/:saleId — Por venta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/sale/{{saleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "sale", "{{saleId}}"]
+            },
+            "description": "Obtiene el ticket asociado a una venta."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ticket formateado', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('sale_id');",
+                  "    pm.expect(json).to.have.property('store_name');",
+                  "    pm.expect(json).to.have.property('items');",
+                  "    pm.expect(json).to.have.property('discount');",
+                  "    pm.expect(json.store_name).to.eql('Cafecito Feliz');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /tickets/generate/:saleId — Generar ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets/generate/{{saleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets", "generate", "{{saleId}}"]
+            },
+            "description": "Genera un ticket para una venta. Si ya existe, retorna el existente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 o 201', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200,201]);",
+                  "});",
+                  "pm.test('Ticket tiene datos', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('sale_id');",
+                  "    pm.expect(json).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /tickets — Listar todos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["tickets"]
+            },
+            "description": "Lista todos los tickets generados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Lista de tickets', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    if (json.length > 0) {",
+                  "        pm.expect(json[0]).to.have.property('sale_id');",
+                  "        pm.expect(json[0]).to.have.property('store_name');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
