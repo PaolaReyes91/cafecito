@@ -4,7 +4,7 @@ export const connectDB = async () => {
   try {
     const uri =
       process.env.MONGO_URI ||
-      process.env.DB_CONNECTION_STRING ||
+      process.env.MONGO_URI ||
       'mongodb://127.0.0.1:27017/cafecito';
     const conn = await mongoose.connect(uri);
     console.log('✅ MongoDB conectado:', conn.connection.host);
