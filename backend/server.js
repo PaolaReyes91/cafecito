@@ -12,14 +12,28 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-await connectDB();
-
 app.use('/api', router);
 
 app.get('/', (req, res) => {
-  res.send('Servidor activo');
+  res.send('Bienvenido al servidor de Cafecito Feliz');
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+// Función asíncrona para inicializar la app en el orden correcto
+const startServer = async () => {
+  try {
+    // 1. Conectamos a MongoDB Atlas primero
+    await connectDB();
+    console.log('Conexión exitosa a la base de datos.');
+
+    // 2. Escuchamos en el puerto asignado por Render (usando '0.0.0.0' para producción)
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Servidor corriendo exitosamente en el puerto ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error al iniciar el servidor de Cafecito:', error);
+    process.exit(1); // Apaga el proceso si la base de datos falla
+  }
+};
+
+// Arrancamos el servidor
+startServer();
